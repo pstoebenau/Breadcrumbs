@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, Button, Alert, Image } from 'react-native'
+import { StyleSheet, Text, View, Button, Alert, Image } from 'react-native';
+
+import MapView from './components/MapView';
 
 export default class HelloWorldApp extends Component {
   render() {
@@ -16,10 +18,7 @@ export default class HelloWorldApp extends Component {
           />
         </View>
 
-        <Image
-        style={{width: 400, height: 600}}
-        source={{uri: 'https://facebook.github.io/react-native/img/tiny_logo.png'}}
-        />
+        <MapView />
       </View>
     );
   }
