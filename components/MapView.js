@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Accelerometer } from 'expo-sensors';
+import { StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { DeviceMotion } from 'expo-sensors';
 
 export default function MapView() {
   const [data, setData] = useState({});
+  let accel = data;
+  let velocity = { x: 0, y: 0, z:0};
+  let displacement = { x: 0, y: 0, z:0};
 
   useEffect(() => {
     _toggle();
@@ -24,16 +27,16 @@ export default function MapView() {
   };
 
   const _slow = () => {
-    Accelerometer.setUpdateInterval(1000);
+    DeviceMotion.setUpdateInterval(1000);
   };
 
   const _fast = () => {
-    Accelerometer.setUpdateInterval(16);
+    DeviceMotion.setUpdateInterval(100);
   };
 
   const _subscribe = () => {
-    this._subscription = Accelerometer.addListener(accelerometerData => {
-      setData(accelerometerData);
+    this._subscription = DeviceMotion.addListener(deviceMotionData => {
+      setData(deviceMotionData.acceleration);
     });
   };
 
@@ -42,13 +45,62 @@ export default function MapView() {
     this._subscription = null;
   };
 
-  let { x, y, z } = data;
+  const _getDisplacement = (axis) => {
+    let axisAccel;
+    let axisVel;
+    let axisDisplace;
+    const timeInterval = 100/1000;
+
+    if (axis === 'x') {
+      axisAccel = accel.x;
+      axisVel = velocity.x;
+      axisDisplace = displacement.x;
+    } else if (axis === 'y') {
+      axisAccel = accel.y;
+      axisVel = velocity.y;
+      axisDisplace = displacement.y;
+    } else if (axis === 'z') {
+      axisAccel = accel.z;
+      axisVel = velocity.z;
+      axisDisplace = displacement.z;
+    }
+
+    axisVel += axisAccel * timeInterval;
+    axisDisplace += axisVel * timeInterval;
+
+    console.log(accel);
+
+    if (axis === 'x') {
+      accel.x = axisAccel;
+      velocity.x = axisVel;
+      displacement.x = axisDisplace;
+    } else if (axis === 'y') {
+      accel.y = axisAccel;
+      velocity.y = axisVel;
+      displacement.y = axisDisplace;
+    } else if (axis === 'z') {
+      accel.z = axisAccel;
+      velocity.z = axisVel;
+      displacement.z = axisDisplace;
+    }
+
+    return round(axisDisplace);
+  };
+
   return (
     <View style={styles.sensor}>
-      <Text style={styles.text}>Accelerometer: (in Gs where 1 G = 9.81 m s^-2)</Text>
-      <Text style={styles.text}>
-        x: {round(x)} y: {round(y)} z: {round(z)}
-      </Text>
+      <Text style={styles.text}>acceleration:</Text>
+      <View style={styles.container}>
+        <Text style={styles.text}>
+          x: {round(accel.x)}
+        </Text>
+        <Text style={styles.text}>
+          y: {round(accel.y)}
+        </Text>
+        <Text style={styles.text}>
+          z: {round(accel.z)}
+        </Text>
+      </View>
       <View style={styles.buttonContainer}>
         <TouchableOpacity onPress={_toggle} style={styles.button}>
           <Text>Toggle</Text>
@@ -60,6 +112,19 @@ export default function MapView() {
           <Text>Fast</Text>
         </TouchableOpacity>
       </View>
+
+      <Text style={styles.text}>Displacement:</Text>
+      <View style={styles.container}>
+        <Text style={styles.text}>
+          x: {_getDisplacement('x')}
+        </Text>
+        <Text style={styles.text}>
+          y: {_getDisplacement('y')}
+        </Text>
+        <Text style={styles.text}>
+          z: {_getDisplacement('z')}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -69,7 +134,7 @@ function round(n) {
     return 0;
   }
 
-  return Math.round(98.1*n)/10;
+  return Math.round(10*n)/10;
 }
 
 const styles = StyleSheet.create({
@@ -93,6 +158,10 @@ const styles = StyleSheet.create({
   sensor: {
     marginTop: 45,
     paddingHorizontal: 10,
+  },
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
   },
   text: {
     textAlign: 'center',
